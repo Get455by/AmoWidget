@@ -26,7 +26,7 @@ def send_contact(request):
     phone = request.GET.get('phone')
 
 
-    # data for add and edit Amo contacts
+    # data for add Amo contacts
     add_data = [
         {
             "name": name,
@@ -86,8 +86,6 @@ def send_contact(request):
             add_contact_responce = requests.post('https://managertetsingapi.amocrm.ru/api/v4/contacts',json=add_data, headers=headers )
             if add_contact_responce.status_code == 200:
                 new_contact_id = add_contact_responce.json()["_embedded"]["contacts"][0]['id']
-                print(new_contact_id)
-
 
                 add_lead_data_new = [
                     {
@@ -103,7 +101,7 @@ def send_contact(request):
                     },
                 ]
                 add_new_lead = requests.post('https://managertetsingapi.amocrm.ru/api/v4/leads/complex',json=add_lead_data_new, headers=headers )
-                print(add_new_lead.json())
+
         except Exception as ex:
             print(ex)
 
@@ -143,9 +141,11 @@ def send_contact(request):
                 ],
             }
         ]
-
-        edit_contact_responce = requests.patch('https://managertetsingapi.amocrm.ru/api/v4/contacts',json=edit_data, headers=headers )
-        print(edit_contact_responce.json())
+        # edit current contact
+        try:
+            edit_contact_responce = requests.patch('https://managertetsingapi.amocrm.ru/api/v4/contacts',json=edit_data, headers=headers )
+        except Exception as ex:
+            print(ex)
         add_lead_data_edit = [
             {
                 "name": "Lead from my test",
@@ -159,6 +159,9 @@ def send_contact(request):
                 }
             },
         ]
-        add_new_lead = requests.post('https://managertetsingapi.amocrm.ru/api/v4/leads/complex',json=add_lead_data_edit, headers=headers )
-
+        # add new lead
+        try:
+            add_new_lead = requests.post('https://managertetsingapi.amocrm.ru/api/v4/leads/complex',json=add_lead_data_edit, headers=headers )
+        except Exception as ex:
+            print(ex)
     return redirect('home')
