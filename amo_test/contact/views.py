@@ -10,9 +10,6 @@ headers = {
     'Authorization': 'Bearer ' + access_token
     }
 
-
-
-
 #homepage view
 def contact(request):
     return render(request, 'pages/index.html')
@@ -53,9 +50,6 @@ def send_contact(request):
             ],
         }
     ]
-
-
-
 
 
     # find contact by email or phone in Amo contactList
