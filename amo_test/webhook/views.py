@@ -58,11 +58,3 @@ def webhook_endpoint(request):
         return Response({'status': 'fail', 'description': 'Required argument is missing!'})
 
 
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def twilio_income(request):
-    a = request.GET
-    requests.get(
-        "https://api.telegram.org/bot2082528189:AAGOISKjp_u9Q3Xm3ehGCHn-AXHNoUMjHgo/sendMessage?chat_id=-1001595963709&text=" + str(
-            a))
-    return Response({'status': 'OK', 'description': 'Good'})
