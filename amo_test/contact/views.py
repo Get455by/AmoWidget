@@ -15,6 +15,12 @@ from .services import *
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
+def get_hook(request):
+    hooks = AmoWebhook().get_all_webhooks()
+    return Response({'Status': 'gooddeal', 'Description': hooks})
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
 def add_lead(request):
     AmoLeads().create_lead(264999)
     return Response({'Status': 'gooddeal', 'Description': 'Something went wrong'})

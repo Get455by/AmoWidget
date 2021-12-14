@@ -6,14 +6,12 @@ from django.core.files.storage import default_storage
 
 
 class AmoMain:
-
     url_prefix = '/oauth2/access_token'
     url = settings.URL
     client_id = settings.CLIENT_ID
     client_secret = settings.CLIENT_SECRET
     redirect_uri = settings.REDIREKT_URI
     code = settings.CODE
-
 
     # save a/r token to .json file
     def save_access_token(self, token):
@@ -40,15 +38,15 @@ class AmoMain:
 
     # first one-time generate access token
     def get_access_token(self):
-        data  = {
-          "client_id": self.client_id,
-          "client_secret": self.client_secret,
-          "grant_type": "authorization_code",
-          "code": self.code,
-          "redirect_uri": self.redirect_uri
+        data = {
+            "client_id": self.client_id,
+            "client_secret": self.client_secret,
+            "grant_type": "authorization_code",
+            "code": self.code,
+            "redirect_uri": self.redirect_uri
         }
 
-        response = requests.post(self.url + self.url_prefix, data=data )
+        response = requests.post(self.url + self.url_prefix, data=data)
         token = response.json()
         AmoMain().save_access_token(token)
 
@@ -63,7 +61,7 @@ class AmoMain:
             "refresh_token": refresh_token,
             "redirect_uri": self.redirect_uri
         }
-        response = requests.post(self.url + self.url_prefix, data=data )
+        response = requests.post(self.url + self.url_prefix, data=data)
         token = response.json()
         print('r/a tokens were refreshed')
         AmoMain().save_access_token(token)
@@ -78,119 +76,113 @@ class AmoMain:
 
 
 class AmoContact(AmoMain):
-
     url_prefix = '/api/v4/contacts'
-
-    def find_similar_contacts(self, name, phone, email):
-        headers = super().get_headers()
-        params_list = [phone, email]
-        for i in params_list:
-            print(f'START')
-            response = requests.get( self.url + self.url_prefix + '?query='+i, headers=headers)
-            print(f'Response of checking contact {response}')
-            if response.status_code == 200:
-                print('[+] response.status_code == 200')
-                response = response.json()
-                # find in response contact's id
-                find_contact_id_param = response["_embedded"]["contacts"][0]['id']
-                print('ok')
-                AmoContact().update_contact(find_contact_id_param, name, phone, email)
-                return find_contact_id_param
-
-        return False
-
-    # Updating contact if similar was found
-
-    def update_contact(self, find_contact_id_param, name, phone, email):
-        headers = super().get_headers()
-        add_data =[{
-                "id": find_contact_id_param,
-                "name": name,
-                "custom_fields_values": [
-                    {
-                        'field_id':103141,
-                        "values": [
-                            {
-                                "value": phone,
-                                "enum_code": "WORK"
-                            }
-                            ],
-
-                    },
-                    {
-                        'field_id':103143,
-                        "values": [
-                            {
-                                "value": email,
-                                "enum_code": "WORK"
-                            }
-                            ]
-                    }
-                ],
-        }]
-
-        update_contact_responce = requests.patch(self.url + self.url_prefix, json=add_data, headers=headers)
-        if update_contact_responce.status_code != 200:
-            super().refresh_access_token()
-            update_contact_responce = requests.patch(self.url + self.url_prefix, json=add_data,
-                                                     headers=super().get_headers())
-        return update_contact_responce.json()
 
     def create_contact(self, name, phone, email):
         headers = super().get_headers()
-        print('go to check similar contact')
-        similar_contact = AmoContact().find_similar_contacts(name, phone, email)
-        if similar_contact != False:
-            print(f'Similar contact was found: {similar_contact}. It was updated')
-            return similar_contact, 'updated'
-        print(f'Similar contact was not found. Start adding new contact')
+
         add_data = {
             'add':
-            {
-                "name": name,
-                "custom_fields_values": [
-                    {
-                        'field_id': 103141,
-                        "values": [
-                            {
-                                "value": phone,
-                                "enum_code": "WORK"
-                            }
+                {
+                    "name": name,
+                    "custom_fields_values": [
+                        {
+                            'field_id': 103141,
+                            "values": [
+                                {
+                                    "value": phone,
+                                    "enum_code": "WORK"
+                                }
                             ],
 
-                    },
-                    {
-                        'field_id': 103143,
-                        "values": [
-                            {
-                                "value": email,
-                                "enum_code": "WORK"
-                            }
+                        },
+                        {
+                            'field_id': 103143,
+                            "values": [
+                                {
+                                    "value": email,
+                                    "enum_code": "WORK"
+                                }
                             ]
-                    }
-                ],
-            }
+                        }
+                    ],
+                }
         }
         add_contact_responce = requests.post(self.url + self.url_prefix, json=add_data, headers=headers)
         if add_contact_responce.status_code != 200:
-            super().refresh_access_token()
-            add_contact_responce = requests.post(self.url + self.url_prefix, json=add_data, headers=super().get_headers())
+            AmoMain().refresh_access_token()
+            add_contact_responce = requests.post(self.url + self.url_prefix, json=add_data,
+                                                 headers=super().get_headers())
         return add_contact_responce.json()["_embedded"]["contacts"][0]['id'], 'created'
 
+    def get_contact_by_id(self, contact_id):
+        headers = super().get_headers()
+        contact_info = requests.get(self.url + self.url_prefix + '/' + str(contact_id), headers=headers)
+        if contact_info.status_code != 200:
+            AmoMain().refresh_access_token()
+            contact_info = requests.get(self.url + self.url_prefix + '/' + str(contact_id),
+                                        headers=super().get_headers())
+        return contact_info.json()
+
+
 class AmoLeads(AmoMain):
+    url_prefix = '/api/v4/leads'
 
     def create_lead(self, contact_id):
         print(contact_id)
         headers = super().get_headers()
         add_lead_data = [{
-                    "name": "Lead from my test",
-                    "_embedded": {
-                        "contacts": [
-                            {
-                                "id": contact_id
-                            }
-                        ]
+            "name": "Lead from my test",
+            "_embedded": {
+                "contacts": [
+                    {
+                        "id": contact_id
                     }
+                ]
+            }
         }]
 
-        add_new_lead = requests.post('https://usatest.amocrm.com/api/v4/leads', json=add_lead_data, headers=headers)
+        add_new_lead = requests.post(self.url + self.url_prefix, json=add_lead_data, headers=headers)
+        if add_new_lead.status_code != 200:
+            AmoMain().refresh_access_token()
+            add_new_lead = requests.post(self.url + self.url_prefix, json=add_lead_data, headers=super().get_headers())
+
+    def get_leads_by_id(self, lead_id):
+        headers = super().get_headers()
+        lead_info = requests.get(self.url + self.url_prefix + '/' + str(lead_id) + '?with=_embedded,contacts',
+                                 headers=headers)
+        return lead_info.json()
+
+
+class AmoTask(AmoMain):
+    url_prefix = '/api/v4/tasks'
+
+    def add_task(self, entity_id, entity_type, text, complete_till):
+        headers = super().get_headers()
+        add_data = {'add':
+            {
+                "task_type_id": 1,
+                "text": text,
+                "complete_till": complete_till,
+                "entity_id": entity_id,
+                "entity_type": entity_type,
+                "request_id": "example"
+            }}
+        task = requests.post(self.url + self.url_prefix, json=add_data, headers=headers)
+        return task.json()
+
+
+class AmoNote(AmoMain):
+
+    def add_note(self, entity_type, entity_id, text_note):
+        headers = super().get_headers()
+        params = [{
+            "entity_id": entity_id,
+            "note_type": "common",
+            "params": {
+                "text": text_note
+            }}]
+        task = requests.post('https://usatest.amocrm.com/api/v4/' + entity_type + '/notes', json=params,
+                             headers=headers)
+
+        return task.json()
