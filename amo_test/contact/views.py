@@ -27,9 +27,7 @@ def send_contact(request):
     if not name or not email or not phone:
         return Response({'status':'fail', 'description':'Required argument is missing!'})
 
-    # Go to add contact func. Func will check for similar contact in
-    # AmoCRM lists by phone and email, before adding. If similar
-    # contact will be found - the old contact will be updated with income data
+    # Go to add contact func/ add lead func
     try:
         id_contact, status = AmoContact().create_contact(name, phone, email)
         AmoLeads().create_lead(id_contact)
